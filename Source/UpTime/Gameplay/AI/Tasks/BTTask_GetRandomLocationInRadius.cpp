@@ -17,16 +17,16 @@ EBTNodeResult::Type UBTTask_GetRandomLocationInRadius::ExecuteTask(UBehaviorTree
 {
 	if (BlackboardKey.SelectedKeyType != UBlackboardKeyType_Vector::StaticClass())
 	{
-		AAIController* AIController = OwnerComp.GetAIOwner();
-		UE_VLOG(AIController, 
-			LogBehaviorTree, 
+		const AAIController* AIController = OwnerComp.GetAIOwner();
+		UE_VLOG(AIController,
+			LogBehaviorTree,
 			Warning,
-			TEXT("UBTTask_GetRandomLocationInRadius::ExecuteTask tried to retrieve Guard Location BB %s entry was empty"), 
+			TEXT("UBTTask_GetRandomLocationInRadius failed to retrieve Guard Location BB %s: Key is not of type Vector"),
 			*BlackboardKey.SelectedKeyName.ToString());
 		return EBTNodeResult::Failed;
 	}
 
-	UNavigationSystemV1* NavigationSystem = UNavigationSystemV1::GetCurrent(GetWorld());
+	const UNavigationSystemV1* NavigationSystem = UNavigationSystemV1::GetCurrent(GetWorld());
 	if (!ensureMsgf(NavigationSystem, TEXT("Navigation System could not be retrieved to get random location in radius")))
 	{
 		return EBTNodeResult::Failed;
@@ -35,13 +35,12 @@ EBTNodeResult::Type UBTTask_GetRandomLocationInRadius::ExecuteTask(UBehaviorTree
 	UBlackboardComponent* Blackboard = OwnerComp.GetBlackboardComponent();
 	const FVector GuardLocation = Blackboard->GetValueAsVector(BlackboardKey.SelectedKeyName);
 	FNavLocation ResultLocation;
-	
-	if(!NavigationSystem->GetRandomReachablePointInRadius(GuardLocation, Radius, ResultLocation))
+
+	if (!NavigationSystem->GetRandomReachablePointInRadius(GuardLocation, Radius, ResultLocation))
 	{
 		return EBTNodeResult::Failed;
 	}
 
 	Blackboard->SetValueAsVector(RandomLocationKey.SelectedKeyName, ResultLocation.Location);
-
 	return EBTNodeResult::Succeeded;
 }

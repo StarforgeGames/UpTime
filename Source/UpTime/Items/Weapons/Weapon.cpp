@@ -14,6 +14,7 @@ AWeapon::AWeapon()
 	FireFinishSound(nullptr),
 	FiringEffect(nullptr),
 	FiringAudioComponent(nullptr),
+	TimeBetweenShots(0),
 	MuzzleConfiguration(EMuzzleConfiguration::Single),
 	bWantsToFire(false),
 	LastTimeFiring(0.f),
@@ -38,7 +39,6 @@ void AWeapon::BeginPlay()
 void AWeapon::OnEquipped(TScriptInterface<IArmedActor> NewOwner)
 {
 	AActor* Actor = Cast<AActor>(NewOwner.GetObject());
-
 	if (!ensureMsgf(Actor, TEXT("Weapon owner must be an Actor")))
 	{
 		return;
@@ -99,8 +99,8 @@ void AWeapon::SetCurrentState(const EWeaponState NewState)
 
 void AWeapon::HandleFiring()
 {
-	AActor* WeaponOwner = GetOwner();
-	
+	const AActor* WeaponOwner = GetOwner();
+
 	if (!CanFire() || !IArmedActor::Execute_CanFire(WeaponOwner))
 	{
 		StopFiring();
@@ -125,7 +125,7 @@ void AWeapon::SimulateWeaponFire()
 	{
 		PlaySound(FiringSound);
 	}
-		
+
 	AActor* WeaponOwner = GetOwner();
 	IArmedActor::Execute_OnFiringShot(WeaponOwner);
 
@@ -134,14 +134,14 @@ void AWeapon::SimulateWeaponFire()
 		return;
 	}
 
-	IArmedActor* ArmedActor = Cast<IArmedActor>(WeaponOwner);
+	const IArmedActor* ArmedActor = Cast<IArmedActor>(WeaponOwner);
 	if (!ensureMsgf(ArmedActor, TEXT("Weapon must have an owner to be fired")))
 	{
 		return;
 	}
 
 	TArray<FVector> MuzzleLocations = IArmedActor::Execute_GetWeaponMuzzleLocations(WeaponOwner, MuzzleConfiguration);
-	
+
 	for (const FVector Location : MuzzleLocations)
 	{
 		UGameplayStatics::SpawnEmitterAttached(
@@ -158,7 +158,7 @@ void AWeapon::SimulateWeaponFire()
 UAudioComponent* AWeapon::PlaySound(USoundCue* Sound) const
 {
 	UAudioComponent* AudioComponent = nullptr;
-	AActor* WeaponOwner = GetOwner();
+	const AActor* WeaponOwner = GetOwner();
 
 	if (Sound && WeaponOwner)
 	{
@@ -183,7 +183,7 @@ void AWeapon::StopSimulatingWeaponFire()
 
 FVector AWeapon::GetAimDirection() const
 {
-	AActor* WeaponOwner = GetOwner();
+	const AActor* WeaponOwner = GetOwner();
 	if (!ensureMsgf(WeaponOwner, TEXT("Weapon owner is null, cannot get aim direction")))
 	{
 		return FVector();

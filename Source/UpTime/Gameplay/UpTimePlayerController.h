@@ -7,34 +7,35 @@
 
 #include "UpTimePlayerController.generated.h"
 
+class USoundCue;
+
 UCLASS()
 class AUpTimePlayerController : public APlayerController
 {
 	GENERATED_BODY()
 
-public:
-	AUpTimePlayerController();
-	
-	/**
-	 * \brief Tells whether the player uses keyboard input or gamepad.
-	 * \return True if keyboard input is used.
-	 */
-	FORCEINLINE bool IsKeyboardInput() const { return bIsKeyboardInput; }
-
-	UFUNCTION()
-	void OnPlayerDeath();
-	
 protected:
-	void OnPossess(APawn* MyPawn) override;
-	
 	UPROPERTY(BlueprintReadWrite, Category="Input")
 	bool bIsKeyboardInput = true;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Player")
-	class USoundCue* PlayerDeathMusic;
+	USoundCue* PlayerDeathMusic;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Player")
-	class UAudioComponent* PlayerDeathMusicComponent;
+	UAudioComponent* PlayerDeathMusicComponent;
+
+public:
+	AUpTimePlayerController();
+
+	/**
+	 * Tells whether the player uses keyboard input or gamepad.
+	 * @return True if keyboard input is used.
+	 */
+	FORCEINLINE bool IsKeyboardInput() const { return bIsKeyboardInput; }
+
+protected:
+	virtual void OnPossess(APawn* MyPawn) override;
+
+	UFUNCTION()
+	void OnPlayerDeath();
 };
-
-

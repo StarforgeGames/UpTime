@@ -5,10 +5,9 @@
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
 
-// Sets default values
 ACombatCharacter::ACombatCharacter()
 	: bIsInvulnerable(false),
-	bIsDying(false)
+	bIsDying(false), HitSound(nullptr), HitEffect(nullptr), DeathSound(nullptr), DeathEffect(nullptr)
 {}
 
 float ACombatCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator,
@@ -48,7 +47,7 @@ void ACombatCharacter::SimulateHit_Implementation(float DamageTaken, TSubclassOf
 		UGameplayStatics::SpawnSoundAttached(HitSound, GetRootComponent());
 	}
 
-	if(HitEffect)
+	if (HitEffect)
 	{
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), HitEffect, GetActorLocation());
 	}
@@ -62,14 +61,13 @@ bool ACombatCharacter::Kill(AController* EventInstigator, AActor* DamageCauser)
 	}
 
 	bIsDying = true;
-	
-	auto ThisController = GetController();
-	if (ThisController)
+
+	const auto MyController = GetController();
+	if (MyController)
 	{
-		ThisController->StopMovement();
+		MyController->StopMovement();
 	}
 
-		
 	OnDeath.Broadcast();
 	SimulateDeath(EventInstigator, DamageCauser);
 
@@ -83,13 +81,24 @@ void ACombatCharacter::SimulateDeath_Implementation(AController* EventInstigator
 		UGameplayStatics::SpawnSoundAttached(DeathSound, GetRootComponent());
 	}
 
-	if(DeathEffect)
+	if (DeathEffect)
 	{
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), DeathEffect, GetActorLocation());
 	}
 }
 
-bool ACombatCharacter::CanDie(AController* EventInstigator,	AActor* DamageCauser) const
+bool ACombatCharacter::IsInvulnerable() const
+{
+	return bIsInvulnerable;
+}
+
+void ACombatCharacter::SetInvulernable(bool IsInvulnerable)
+{
+	bIsInvulnerable = IsInvulnerable;
+}
+
+
+bool ACombatCharacter::CanDie(AController* EventInstigator, AActor* DamageCauser) const
 {
 	return !bIsDying && !IsPendingKill() && !IsInvulnerable();
 }
@@ -102,14 +111,4 @@ bool ACombatCharacter::IsAlive() const
 bool ACombatCharacter::IsDying() const
 {
 	return bIsDying;
-}
-
-bool ACombatCharacter::IsInvulnerable() const
-{
-	return bIsInvulnerable;
-}
-
-void ACombatCharacter::SetInvulernable(bool IsInvulnerable)
-{
-	bIsInvulnerable = IsInvulnerable;
 }

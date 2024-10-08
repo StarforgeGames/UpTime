@@ -3,84 +3,107 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Gameplay/UpTimePlayerController.h"
 #include "Actors/Common/ArmedActor.h"
 #include "Actors/Common/CombatCharacter.h"
 #include "GameFramework/Character.h"
-
+#include "Gameplay/UpTimePlayerController.h"
 #include "UpTimePlayerCharacter.generated.h"
+
+class UPowerSystemComponent;
+class IInteractable;
+class UCameraComponent;
+class USpringArmComponent;
 
 UCLASS(Blueprintable)
 class AUpTimePlayerCharacter : public ACombatCharacter, public IArmedActor
 {
 	GENERATED_BODY()
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera, meta=(AllowPrivateAccess="true"))
+	UCameraComponent* TopDownCameraComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera, meta=(AllowPrivateAccess="true"))
+	USpringArmComponent* CameraBoom;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera, meta=(AllowPrivateAccess="true"))
+	UDecalComponent* CursorToWorld;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Power System", meta=(AllowPrivateAccess="true"))
+	UPowerSystemComponent* PowerSystemComponent;
+
+	/** The type of weapon the player starts with. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Player", meta=(AllowPrivateAccess="true"))
+	TSubclassOf<AWeapon> StartWeapon;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat", meta=(AllowPrivateAccess="true"))
+	AWeapon* Weapon;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Interactable", meta=(AllowPrivateAccess="true"))
+	TScriptInterface<IInteractable> FocussedInteractable;
+
 public:
 	AUpTimePlayerCharacter();
 
 protected:
-	void BeginPlay() override;
-	
-	/**
-	 * \brief Setup pawn-specific controls
-	 * \param PlayerInputComponent The input component.
-	 */
-	void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual void BeginPlay() override;
 
-public:	
-	void Tick(float DeltaSeconds) override;
+	/**
+	 * Setup pawn-specific controls
+	 * @param PlayerInputComponent The input component.
+	 */
+	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+
+public:
+	virtual void Tick(float DeltaSeconds) override;
 
 	UFUNCTION(BlueprintCallable)
 	void OnPowerDrained();
-	
+
 	/**
-	 * \brief Increases the current power by the given amount.
-	 * \param ChargeValue The amount to add.
+	 * Increases the current power by the given amount.
+	 * @param ChargeValue The amount to add.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Power System")
 	void ChargePower(int ChargeValue);
 
-	void FocusInteractable(class IInteractable* Interactable);
+	void FocusInteractable(IInteractable* Interactable);
 	void UnfocusInteractable();
 
 	/**
-	 * \brief Equips the given weapon on the armed actor.
-	 * \param NewWeapon The weapon instance.
+	 * Equips the given weapon on the armed actor.
+	 * @param NewWeapon The weapon instance.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Weapons")
-	void Equip(class AWeapon* NewWeapon);
-	
-	/**
-	 * \brief Starts firing the weapon.
-	 */
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Weapons")
-	// ReSharper disable CppHidingFunction
-	void StartFiring();
-	
-	/**
-	 * \brief Stops firing the weapon.
-	 */
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Weapons")
-	void StopFiring();
+	void Equip(AWeapon* NewWeapon);
+
+	/** Wraps the call start firing using the interface execute method for input handling. */
+	void HandleStartFiring();
+	/** Wraps the call stop firing using the interface execute method for input handling. */
+	void HandleStopFiring();
 
 	/**
-	* \brief Checks whether the weapon can be fired.
+	 * Starts firing the weapon.
+	 */
+	virtual void StartFiring_Implementation() override;
+
+	/**
+	 * Stops firing the weapon.
+	 */
+	virtual void StopFiring_Implementation() override;
+
+	/**
+	* Checks whether the weapon can be fired.
 	*/
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Weapons")
-	bool CanFire() const;
+	virtual bool CanFire_Implementation() const override;
 
 	/**
-	* \brief Checks whether any weapon is currently being fired.
+	* Checks whether any weapon is currently being fired.
 	*/
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Weapons")
-	bool IsFiring() const;
-	
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Weapons")
-	TArray<FVector> GetWeaponMuzzleLocations(EMuzzleConfiguration MuzzleConfig);
+	virtual bool IsFiring_Implementation() const override;
 
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Weapons")
-	FORCEINLINE AWeapon* GetWeapon() const;
-	// ReSharper restore CppHidingFunction
+	virtual TArray<FVector> GetWeaponMuzzleLocations_Implementation(EMuzzleConfiguration MuzzleConfig) override;
+
+	virtual AWeapon* GetWeapon_Implementation() const override;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Power System")
 	float GetCurrentPower();
@@ -88,54 +111,29 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Power System")
 	int GetCurrentPowerCells();
 
-	bool Kill(AController* EventInstigator,	AActor* DamageCauser) override;
+	virtual bool Kill(AController* EventInstigator, AActor* DamageCauser) override;
 
-	float GetHitpoints() const override;
-	void SetHitpoints(float NewHitpoints) override;
-	
-	FORCEINLINE class UCameraComponent* GetTopDownCameraComponent() const { return TopDownCameraComponent; }
-	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	FORCEINLINE class UDecalComponent* GetCursorToWorld() const	{ return CursorToWorld; }
+	virtual float GetHitpoints() const override;
+	virtual void SetHitpoints(float NewHitpoints) override;
+
+	UCameraComponent* GetTopDownCameraComponent() const { return TopDownCameraComponent; }
+	USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+	UDecalComponent* GetCursorToWorld() const { return CursorToWorld; }
 
 protected:
-	
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 
 	void LookUp(float Value);
 	void LookRight(float Value);
-		
+
 	/**
-	 * \brief Turns the player character in the direction of the mouse cursor.
+	 * Turns the player character in the direction of the mouse cursor.
 	 */
 	void RotateToMousePosition(AUpTimePlayerController* PlayerController);
 
 	/**
-	 * \brief Interacts with the currently focused interactable.
+	 * Interacts with the currently focused interactable.
 	 */
-	void OnInteract();	
-
-private:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera, meta=(AllowPrivateAccess="true"))
-	class UCameraComponent* TopDownCameraComponent;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera, meta=(AllowPrivateAccess="true"))
-	class USpringArmComponent* CameraBoom;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera, meta=(AllowPrivateAccess="true"))
-	class UDecalComponent* CursorToWorld;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Power System", meta=(AllowPrivateAccess="true"))
-	class UPowerSystemComponent* PowerSystemComponent;
-	
-	/** The type of weapon the player starts with. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Player", meta=(AllowPrivateAccess="true"))
-	TSubclassOf<class AWeapon> StartWeapon;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat", meta=(AllowPrivateAccess="true"))
-	class AWeapon* Weapon;
-
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Interactable", meta=(AllowPrivateAccess="true"))
-	class TScriptInterface<class IInteractable> FocussedInteractable;
+	void OnInteract();
 };
-

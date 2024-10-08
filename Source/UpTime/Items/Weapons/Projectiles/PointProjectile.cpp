@@ -4,14 +4,13 @@
 #include "Items/Weapons/ProjectileWeapon.h"
 
 
-APointProjectile::APointProjectile(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer),
-	Damage(20.f)
+APointProjectile::APointProjectile()
+	: Damage(20.f)
 {}
 
 void APointProjectile::DealDamage(const FHitResult& HitResult)
 {
-	APawn* WeaponOwner = Cast<APawn>(OwnerWeapon->GetOwner());
+	const APawn* WeaponOwner = Cast<APawn>(OwnerWeapon->GetOwner());
 	if (!ensureMsgf(WeaponOwner, TEXT("Weapon owner not set or not a pawn, cannot deal point damage")))
 	{
 		return;

@@ -7,7 +7,9 @@
 
 UPowerSystemComponent::UPowerSystemComponent()
 	: CurrentPower(10.0f),
-	ConversionFactor(10)
+	ConversionFactor(10),
+	PowercellDrainedSound(nullptr),
+	PowercelLDrainedAudio(nullptr)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 }
@@ -27,35 +29,34 @@ void UPowerSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (IsActive())
+	if (!IsActive())
 	{
-		CurrentPower -= DeltaTime;
-
-		if (CurrentPower <= 0.0f)
-		{
-			if (!OnPowerDrained.ExecuteIfBound())
-			{
-				UE_LOG(LogUpTime, Error, TEXT("No object bound to drained event!"))
-			}
-			
-			UE_LOG(LogUpTime, Log, TEXT("Power drained by time"))
-			Deactivate();
-		}
-
-		const int PowercellDischarge = FMath::RoundToInt(CurrentPower) % ConversionFactor;
-		
-		if (PowercellDischarge == 0 && (!PowercelLDrainedAudio || !PowercelLDrainedAudio->IsPlaying()))
-		{
-			// TODO
-			if (PowercellDrainedSound)
-			{
-				PowercelLDrainedAudio = UGameplayStatics::SpawnSoundAttached(PowercellDrainedSound, 
-					GetOwner()->GetRootComponent());
-			}
-		}
-
-		CurrentPower = FMath::Max(CurrentPower, 0.0f);
+		return;
 	}
+
+	CurrentPower -= DeltaTime;
+	if (CurrentPower <= 0.0f)
+	{
+		if (!OnPowerDrained.ExecuteIfBound())
+		{
+			UE_LOG(LogUpTime, Error, TEXT("No object bound to drained event!"))
+		}
+
+		UE_LOG(LogUpTime, Log, TEXT("Power drained by time"))
+		Deactivate();
+	}
+
+	const int PowercellDischarge = FMath::RoundToInt(CurrentPower) % ConversionFactor;
+	if (PowercellDischarge == 0 && (!PowercelLDrainedAudio || !PowercelLDrainedAudio->IsPlaying()))
+	{
+		if (PowercellDrainedSound)
+		{
+			PowercelLDrainedAudio = UGameplayStatics::SpawnSoundAttached(PowercellDrainedSound,
+				GetOwner()->GetRootComponent());
+		}
+	}
+
+	CurrentPower = FMath::Max(CurrentPower, 0.0f);
 }
 
 void UPowerSystemComponent::ChargePower(const int ChargeValue)

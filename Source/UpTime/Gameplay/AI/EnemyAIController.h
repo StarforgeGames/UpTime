@@ -14,11 +14,25 @@ UCLASS()
 class UPTIME_API AEnemyAIController : public AAIController
 {
 	GENERATED_BODY()
-	
+
+protected:
+	UPROPERTY(EditDefaultsOnly, Category="AI")
+	UBehaviorTree* BehaviorTree;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadonly, Category="AI|Combat")
+	FName EnemyTargetKey;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadonly, Category="AI|Combat")
+	FName GuardLocationKey;
+
 public:
 	AEnemyAIController();
 
-	void OnPossess(APawn* InPawn) override;
+protected:
+	virtual void BeginPlay() override;
+
+public:
+	virtual void OnPossess(APawn* InPawn) override;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Combat")
 	void AttackEnemy();
@@ -28,19 +42,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="AI|Combat")
 	void SetEnemy(class AUpTimePlayerCharacter* Enemy) const;
-	
-protected:
-	void BeginPlay() override;
 
+protected:
 	UFUNCTION()
 	void OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
-
-	UPROPERTY(EditDefaultsOnly, Category="AI")
-	UBehaviorTree* BehaviorTree;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadonly, Category="AI|Combat")
-	FName EnemyTargetKey;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadonly, Category="AI|Combat")
-	FName GuardLocationKey;
 };

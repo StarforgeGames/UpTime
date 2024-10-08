@@ -11,27 +11,13 @@ class AUpTimeGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
 
-public:
-	AUpTimeGameMode();
-
-	void PostInitializeComponents() override;
-
-	UFUNCTION(BlueprintCallable, Category="Game")
-	void LoadNextLevel();
-	
-	UFUNCTION(BlueprintCallable, Category="Game")
-	bool LoadNextTileSet();
-	
-	UFUNCTION(BlueprintPure, BlueprintCallable, Category="Game")
-	int GetNumberOfEnemies() const;
-
-protected:	
+protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Game")
 	class UUpTimeGameInstance* GameInstance;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Level")
 	class ULevelGeneratorComponent* LevelGenerator;
-	
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Level")
 	FName MainLevelName;
 
@@ -48,8 +34,18 @@ protected:
 	/** The number of enemies to add to a level based on the level number. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Level|Spawning")
 	int ScalingEnemyCount;
-	
+
+public:
+	AUpTimeGameMode();
+
+	virtual void PostInitializeComponents() override;
+
+	UFUNCTION(BlueprintCallable, Category="Game")
+	void LoadNextLevel();
+
+	UFUNCTION(BlueprintCallable, Category="Game")
+	bool LoadNextTileSet();
+
+	UFUNCTION(BlueprintPure, BlueprintCallable, Category="Game")
+	int GetNumberOfEnemies() const;
 };
-
-
-

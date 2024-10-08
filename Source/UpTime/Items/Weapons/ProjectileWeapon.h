@@ -4,6 +4,8 @@
 #include "Items/Weapons/Weapon.h"
 #include "ProjectileWeapon.generated.h"
 
+class AProjectile;
+
 /**
  * 
  */
@@ -12,18 +14,18 @@ class UPTIME_API AProjectileWeapon : public AWeapon
 {
 	GENERATED_BODY()
 
+protected:
+	/**
+	 * The projectile class to use.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "Projectile Weapon")
+	TSubclassOf<AProjectile> ProjectileClass;
+
 public:
 	AProjectileWeapon();
 
 	/**
-	 * \brief Fires the weapon by spawning projectiles.
+	 * Fires the weapon by spawning projectiles.
 	 */
-	void FireShot() override;
-
-protected:
-	/**
-	 * \brief The projectile class to use.
-	 */
-	UPROPERTY(EditDefaultsOnly, Category = "Projectile Weapon")
-	TSubclassOf<class AProjectile> ProjectileClass;
+	virtual void FireShot() override;
 };

@@ -5,10 +5,23 @@
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
 
-AUpTimePlayerController::AUpTimePlayerController()
-{	
+AUpTimePlayerController::AUpTimePlayerController(): PlayerDeathMusic(nullptr), PlayerDeathMusicComponent(nullptr)
+{
 	bShowMouseCursor = true;
 	DefaultMouseCursor = EMouseCursor::Crosshairs;
+}
+
+void AUpTimePlayerController::OnPossess(APawn* MyPawn)
+{
+	Super::OnPossess(MyPawn);
+
+	const auto PlayerCharacter = Cast<AUpTimePlayerCharacter>(MyPawn);
+	if (!PlayerCharacter)
+	{
+		UE_LOG(LogUpTime, Error, TEXT("Could not retrieve Player Character on BeginPlay"));
+	}
+
+	PlayerCharacter->OnDeath.AddDynamic(this, &AUpTimePlayerController::OnPlayerDeath);
 }
 
 void AUpTimePlayerController::OnPlayerDeath()
@@ -19,18 +32,4 @@ void AUpTimePlayerController::OnPlayerDeath()
 	}
 
 	PlayerDeathMusicComponent = UGameplayStatics::SpawnSound2D(GetWorld(), PlayerDeathMusic);
-}
-
-void AUpTimePlayerController::OnPossess(APawn* MyPawn)
-{
-	Super::OnPossess(MyPawn);
-	
-	auto PlayerCharacter = Cast<AUpTimePlayerCharacter>(MyPawn);
-
-	if (!PlayerCharacter)
-	{
-		UE_LOG(LogUpTime, Error, TEXT("Could not retrieve Player Character on BeginPlay"));
-	}
-
-	PlayerCharacter->OnDeath.AddDynamic(this, &AUpTimePlayerController::OnPlayerDeath);
 }

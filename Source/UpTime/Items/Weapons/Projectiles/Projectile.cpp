@@ -8,34 +8,33 @@
 #include "Items/Weapons/ProjectileWeapon.h"
 
 
-AProjectile::AProjectile(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer),
-	ProjectileLife(2.f),
+AProjectile::AProjectile()
+	: ProjectileLife(2.f),
 	DamageType(UDamageType::StaticClass()),
 	OwnerWeapon(nullptr)
 {
 	PrimaryActorTick.bCanEverTick = false;
 	PrimaryActorTick.bStartWithTickEnabled = false;
-	
-	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("Collision Component"));
+
+	CollisionComponent = CreateDefaultSubobject<USphereComponent>("Collision Component");
 	SetRootComponent(CollisionComponent);
 	CollisionComponent->InitSphereRadius(15.0f);
 	CollisionComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
 	CollisionComponent->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
 	CollisionComponent->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Block);
 	CollisionComponent->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
-	
-	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
+
+	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>("Mesh");
 	MeshComponent->SetupAttachment(RootComponent);
-	
-	MovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("Movement Component"));
+
+	MovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>("Movement Component");
 	MovementComponent->UpdatedComponent = CollisionComponent;
 	MovementComponent->bAutoActivate = false;
 	MovementComponent->bShouldBounce = false;
 	MovementComponent->ProjectileGravityScale = 0.f;
 	MovementComponent->InitialSpeed = 1000.f;
 
-	ImpactEffectComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ImpactEffect"));
+	ImpactEffectComponent = CreateDefaultSubobject<UParticleSystemComponent>("ImpactEffect");
 	ImpactEffectComponent->bAutoActivate = false;
 	ImpactEffectComponent->SetupAttachment(RootComponent);
 }
@@ -45,9 +44,9 @@ void AProjectile::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 	MovementComponent->OnProjectileStop.AddDynamic(this, &AProjectile::OnImpact);
-	auto ProjectileOwner = GetInstigator();
-	
-	if(ProjectileOwner)
+	const auto ProjectileOwner = GetInstigator();
+
+	if (ProjectileOwner)
 	{
 		CollisionComponent->IgnoreActorWhenMoving(ProjectileOwner, true);
 		ProjectileOwner->MoveIgnoreActorAdd(this);
@@ -56,13 +55,13 @@ void AProjectile::PostInitializeComponents()
 	OwnerWeapon = Cast<AProjectileWeapon>(GetOwner());
 	if (!OwnerWeapon)
 	{
-		UE_LOG(LogUpTime, Error, TEXT("Could not retrieve OwnerWeapon"))		;
+		UE_LOG(LogUpTime, Error, TEXT("Could not retrieve OwnerWeapon"));
 	}
 	SetLifeSpan(ProjectileLife);
 }
 
 void AProjectile::Launch(float OwnerSpeed) const
-{		
+{
 	// Speed must not go negative, otherwise projectile while fly backwards
 	const float Speed = FMath::Max(MovementComponent->InitialSpeed + OwnerSpeed, 1.f);
 	const auto FiringVelocity = FVector::ForwardVector * Speed;

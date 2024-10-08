@@ -15,6 +15,19 @@ AEnemyAIController::AEnemyAIController()
 	GuardLocationKey("GuardLocation")
 {}
 
+void AEnemyAIController::BeginPlay()
+{
+	Super::BeginPlay();
+
+	UAIPerceptionComponent* MyPerceptionComponent = GetPerceptionComponent();
+	if (ensureMsgf(MyPerceptionComponent,
+		TEXT("Perception component not set, cannot intialize target perception updating")))
+	{
+		MyPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this,
+			&AEnemyAIController::OnTargetPerceptionUpdated);
+	}
+}
+
 void AEnemyAIController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
@@ -22,26 +35,24 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
 	RunBehaviorTree(BehaviorTree);
 
 	UBlackboardComponent* AiBlackboard = GetBlackboardComponent();
-	
 	if (!AiBlackboard)
 	{
 		UE_LOG(LogUpTime, Error, TEXT("Blackboard is NULL in AI Controller OnPossess"));
 		return;
 	}
-	
+
 	const FVector CurrentLocation = InPawn->GetActorLocation();
 	AiBlackboard->SetValueAsVector(GuardLocationKey, CurrentLocation);
 }
 
 void AEnemyAIController::AttackEnemy()
 {
-	AEnemyCharacter* EnemyCharacter = Cast<AEnemyCharacter>(GetPawn());
-	const auto ArmedActor = Cast<IArmedActor>(EnemyCharacter);
+	AEnemyCharacter* MyPawn = Cast<AEnemyCharacter>(GetPawn());
 
-	if (!IArmedActor::Execute_GetWeapon(EnemyCharacter))
+	if (!IArmedActor::Execute_GetWeapon(MyPawn))
 	{
-			GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan,
-				FString::Printf(TEXT("%s has no weapon"), *EnemyCharacter->GetName()));
+		GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan,
+			FString::Printf(TEXT("%s has no weapon"), *MyPawn->GetName()));
 		return;
 	}
 
@@ -52,9 +63,9 @@ void AEnemyAIController::AttackEnemy()
 	{
 		if (Enemy->IsAlive())
 		{
-			if (IArmedActor::Execute_CanFire(EnemyCharacter))
+			if (IArmedActor::Execute_CanFire(MyPawn))
 			{
-				bCanAttack = LineOfSightTo(Enemy, EnemyCharacter->GetActorLocation());
+				bCanAttack = LineOfSightTo(Enemy, MyPawn->GetActorLocation());
 			}
 		}
 		else
@@ -71,28 +82,17 @@ void AEnemyAIController::AttackEnemy()
 			SetFocus(Enemy);
 		}
 
-		const float Distance = EnemyCharacter->GetDistanceTo(Enemy);
-		if (Distance <= EnemyCharacter->GetAttackRange())
+		const float Distance = MyPawn->GetDistanceTo(Enemy);
+		if (Distance <= MyPawn->GetAttackRange())
 		{
-			IArmedActor::Execute_StartFiring(EnemyCharacter);
+			IArmedActor::Execute_StartFiring(MyPawn);
 		}
 	}
-	else if (ArmedActor->Execute_IsFiring(EnemyCharacter))
+	else if (IArmedActor::Execute_IsFiring(MyPawn))
 	{
 		UE_LOG(LogUpTime, Log, TEXT("Cannot attack enemy, clearing focus and stopping fire"));
 		ClearFocus(EAIFocusPriority::Gameplay);
-		IArmedActor::Execute_StopFiring(EnemyCharacter);
-	}
-}
-
-void AEnemyAIController::BeginPlay()
-{
-	Super::BeginPlay();
-
-	UAIPerceptionComponent* MyPerceptionComponent = GetPerceptionComponent();
-	if (ensureMsgf(MyPerceptionComponent, TEXT("Perception component not set, cannot intialize target perception updating")))
-	{
-		MyPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AEnemyAIController::OnTargetPerceptionUpdated);
+		IArmedActor::Execute_StopFiring(MyPawn);
 	}
 }
 
@@ -100,7 +100,8 @@ void AEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus St
 {
 	if (Stimulus.WasSuccessfullySensed())
 	{
-		SetEnemy(Cast<AUpTimePlayerCharacter>(Actor));
+		AUpTimePlayerCharacter* Enemy = Cast<AUpTimePlayerCharacter>(Actor);
+		SetEnemy(Enemy);
 	}
 	else
 	{

@@ -29,12 +29,12 @@ void UUpTimeGameInstance::NextLevel(float CurrentPlayerPower, TSubclassOf<class 
 {
 	CurrentFloor++;
 	CurrentTileSetLevel++;
-	
+
 	UE_LOG(LogUpTime, Log, TEXT("Loading TileSetLevel %i, total floor %i"), CurrentFloor, CurrentTileSetLevel);
-	
+
 	PlayerPower = CurrentPlayerPower;
 	PlayerWeapon = CurrentWeapon;
-		
+
 	bIsFirstLevel = false;
 }
 
@@ -70,7 +70,7 @@ float UUpTimeGameInstance::GetPlayerPower() const
 	return PlayerPower;
 }
 
-TSubclassOf<class AWeapon> UUpTimeGameInstance::GetPlayerWeapon() const
+TSubclassOf<AWeapon> UUpTimeGameInstance::GetPlayerWeapon() const
 {
 	return PlayerWeapon;
 }

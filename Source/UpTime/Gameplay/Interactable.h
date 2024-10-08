@@ -13,7 +13,7 @@ class UInteractable : public UInterface
 };
 
 /**
- * \brief Interface for any object that can be interacted with.
+ * Interface for any object that can be interacted with.
  */
 class UPTIME_API IInteractable
 {
@@ -21,5 +21,6 @@ class UPTIME_API IInteractable
 
 public:
 	UFUNCTION(BlueprintNativeEvent, Category = "Interactable")
+	// ReSharper disable once CppHiddenFunction
 	void OnInteract(AActor* OtherActor);
 };

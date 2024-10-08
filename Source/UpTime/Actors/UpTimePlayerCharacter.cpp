@@ -36,7 +36,7 @@ AUpTimePlayerCharacter::AUpTimePlayerCharacter()
 	GetCharacterMovement()->bSnapToPlaneAtStart = true;
 
 	// Create a camera boom...
-	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(FName("CameraBoom"));
+	CameraBoom = CreateDefaultSubobject<USpringArmComponent>("CameraBoom");
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->SetUsingAbsoluteRotation(true); // Don't want arm to rotate when character does
 	CameraBoom->TargetArmLength = 1000.f;
@@ -44,7 +44,7 @@ AUpTimePlayerCharacter::AUpTimePlayerCharacter()
 	CameraBoom->bDoCollisionTest = false; // Don't want to pull camera in when it collides with level
 
 	// Create a camera...
-	TopDownCameraComponent = CreateDefaultSubobject<UCameraComponent>(FName("TopDownCamera"));
+	TopDownCameraComponent = CreateDefaultSubobject<UCameraComponent>("TopDownCamera");
 	TopDownCameraComponent->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	TopDownCameraComponent->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
@@ -61,9 +61,9 @@ AUpTimePlayerCharacter::AUpTimePlayerCharacter()
 	CursorToWorld->SetRelativeRotation(FRotator(90.0f, 0.0f, 0.0f).Quaternion());
 
 	// Initialize power system
-	PowerSystemComponent = CreateDefaultSubobject<UPowerSystemComponent>(FName("PowerSystem"));
+	PowerSystemComponent = CreateDefaultSubobject<UPowerSystemComponent>("PowerSystem");
 	PowerSystemComponent->SetCurrentPower(109.f);
-	
+
 	// Activate ticking in order to update the cursor every frame.
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
@@ -72,9 +72,9 @@ AUpTimePlayerCharacter::AUpTimePlayerCharacter()
 void AUpTimePlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	PowerSystemComponent->OnPowerDrained.BindDynamic(this, &AUpTimePlayerCharacter::OnPowerDrained);
-	UUpTimeGameInstance* GameInstance = Cast<UUpTimeGameInstance>(GetGameInstance());
+	const UUpTimeGameInstance* GameInstance = Cast<UUpTimeGameInstance>(GetGameInstance());
 
 	if (!GameInstance)
 	{
@@ -84,12 +84,13 @@ void AUpTimePlayerCharacter::BeginPlay()
 
 	if (!GameInstance->IsFirstLevel())
 	{
-		const float StartPower = FMath::Max(GameInstance->GetPlayerPower(), 19.f); // Always start with at least 19 Power
+		const float StartPower = FMath::Max(GameInstance->GetPlayerPower(), 19.f);
+		// Always start with at least 19 Power
 		PowerSystemComponent->SetCurrentPower(StartPower);
 
 		StartWeapon = GameInstance->GetPlayerWeapon();
 	}
-			
+
 	if (StartWeapon)
 	{
 		FActorSpawnParameters SpawnInfo;
@@ -103,37 +104,36 @@ void AUpTimePlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Pl
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	// Movement
+	// Axis
 	PlayerInputComponent->BindAxis("MoveForward", this, &AUpTimePlayerCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AUpTimePlayerCharacter::MoveRight);
-
-	// Rotation
 	PlayerInputComponent->BindAxis("LookUp", this, &AUpTimePlayerCharacter::LookUp);
 	PlayerInputComponent->BindAxis("LookRight", this, &AUpTimePlayerCharacter::LookRight);
 
+	// Actions
 	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AUpTimePlayerCharacter::OnInteract);
-	PlayerInputComponent->BindAction("FireWeapon", IE_Pressed, this, &AUpTimePlayerCharacter::StartFiring);
-	PlayerInputComponent->BindAction("FireWeapon", IE_Released, this, &AUpTimePlayerCharacter::StopFiring);
+	PlayerInputComponent->BindAction("FireWeapon", IE_Pressed, this, &AUpTimePlayerCharacter::HandleStartFiring);
+	PlayerInputComponent->BindAction("FireWeapon", IE_Released, this, &AUpTimePlayerCharacter::HandleStopFiring);
 }
 
 void AUpTimePlayerCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-	
+
 	AUpTimePlayerController* PlayerController = Cast<AUpTimePlayerController>(GetController());
-	
+
 	if (!PlayerController || !IsAlive())
 	{
 		return;
 	}
 
-	if(PlayerController->IsKeyboardInput())
+	if (PlayerController->IsKeyboardInput())
 	{
-		if(CursorToWorld->bHiddenInGame)
+		if (CursorToWorld->bHiddenInGame)
 		{
 			CursorToWorld->SetHiddenInGame(false);
 		}
-		
+
 		RotateToMousePosition(PlayerController);
 	}
 	else
@@ -158,8 +158,8 @@ void AUpTimePlayerCharacter::ChargePower(int ChargeValue)
 void AUpTimePlayerCharacter::FocusInteractable(IInteractable* Interactable)
 {
 	UObject* Object = Cast<UObject>(Interactable);
-	
-	if(!Interactable || !Object)
+
+	if (!Interactable || !Object)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Could not register interactable"))
 		return;
@@ -181,14 +181,24 @@ void AUpTimePlayerCharacter::Equip_Implementation(AWeapon* NewWeapon)
 	{
 		Weapon->StopFiring();
 	}
-	
+
 	Weapon = NewWeapon;
 	NewWeapon->OnEquipped(this);
 }
 
+void AUpTimePlayerCharacter::HandleStartFiring()
+{
+	Execute_StartFiring(this);
+}
+
+void AUpTimePlayerCharacter::HandleStopFiring()
+{
+	Execute_StopFiring(this);
+}
+
 void AUpTimePlayerCharacter::StartFiring_Implementation()
 {
-	if(!Weapon)
+	if (!Weapon)
 	{
 		return;
 	}
@@ -198,7 +208,7 @@ void AUpTimePlayerCharacter::StartFiring_Implementation()
 
 void AUpTimePlayerCharacter::StopFiring_Implementation()
 {
-	if(!Weapon)
+	if (!Weapon)
 	{
 		return;
 	}
@@ -213,12 +223,55 @@ bool AUpTimePlayerCharacter::CanFire_Implementation() const
 
 bool AUpTimePlayerCharacter::IsFiring_Implementation() const
 {
-	if(!Weapon)
+	if (!Weapon)
 	{
 		return false;
 	}
-	
+
 	return Weapon->GetCurrentState() == EWeaponState::Firing;
+}
+
+TArray<FVector> AUpTimePlayerCharacter::GetWeaponMuzzleLocations_Implementation(EMuzzleConfiguration MuzzleConfig)
+{
+	TArray<FVector> MuzzleLocations;
+	const USkeletalMeshComponent* MeshComponent = GetMesh();
+
+	if (!ensureMsgf(MeshComponent, TEXT("Player Mesh is null")))
+	{
+		return MuzzleLocations;
+	}
+
+	switch (MuzzleConfig)
+	{
+		case EMuzzleConfiguration::Single:
+		{
+			const FVector Center = MeshComponent->GetSocketLocation("Muzzle_C");
+			MuzzleLocations.Add(Center);
+			break;
+		}
+
+		case EMuzzleConfiguration::Dual:
+		{
+			const FVector Left = MeshComponent->GetSocketLocation("Muzzle_L");
+			MuzzleLocations.Add(Left);
+			const FVector Right = MeshComponent->GetSocketLocation("Muzzle_R");
+			MuzzleLocations.Add(Right);
+			break;
+		}
+
+		case EMuzzleConfiguration::Triple:
+		{
+			const FVector Center = MeshComponent->GetSocketLocation("Muzzle_C");
+			MuzzleLocations.Add(Center);
+			const FVector Left = MeshComponent->GetSocketLocation("Muzzle_L");
+			MuzzleLocations.Add(Left);
+			const FVector Right = MeshComponent->GetSocketLocation("Muzzle_R");
+			MuzzleLocations.Add(Right);
+			break;
+		}
+	}
+
+	return MuzzleLocations;
 }
 
 AWeapon* AUpTimePlayerCharacter::GetWeapon_Implementation() const
@@ -233,7 +286,7 @@ float AUpTimePlayerCharacter::GetCurrentPower()
 		UE_LOG(LogUpTime, Error, TEXT("PowerSystem not available in GetCurrentPower"))
 		return 0.0f;
 	}
-	
+
 	return PowerSystemComponent->GetCurrentPower();
 }
 
@@ -244,13 +297,13 @@ int AUpTimePlayerCharacter::GetCurrentPowerCells()
 		UE_LOG(LogUpTime, Error, TEXT("PowerSystem not available in GetCurrentPowerCells"))
 		return 0;
 	}
-	
+
 	return PowerSystemComponent->GetCurrentPowerCells();
 }
 
-bool AUpTimePlayerCharacter::Kill(AController* EventInstigator,	AActor* DamageCauser)
+bool AUpTimePlayerCharacter::Kill(AController* EventInstigator, AActor* DamageCauser)
 {
-	if(!Super::Kill(EventInstigator, DamageCauser))
+	if (!Super::Kill(EventInstigator, DamageCauser))
 	{
 		return false;
 	}
@@ -259,13 +312,13 @@ bool AUpTimePlayerCharacter::Kill(AController* EventInstigator,	AActor* DamageCa
 	{
 		Weapon->StopFiring();
 	}
-	
+
 	APlayerController* PlayerController = Cast<APlayerController>(GetController());
-	if(!PlayerController)
+	if (!PlayerController)
 	{
 		return false;
 	}
-	
+
 	DisableInput(PlayerController);
 	return true;
 }
@@ -278,49 +331,6 @@ float AUpTimePlayerCharacter::GetHitpoints() const
 void AUpTimePlayerCharacter::SetHitpoints(float NewHitpoints)
 {
 	PowerSystemComponent->SetCurrentPower(NewHitpoints);
-}
-
-TArray<FVector> AUpTimePlayerCharacter::GetWeaponMuzzleLocations_Implementation(EMuzzleConfiguration MuzzleConfig)
-{
-	TArray<FVector> MuzzleLocations;
-	USkeletalMeshComponent* MeshComponent = GetMesh();
-
-	if(!ensureMsgf(MeshComponent, TEXT("Player Mesh is null")))
-	{
-		return MuzzleLocations;	
-	}
-
-	switch (MuzzleConfig)
-	{
-		case EMuzzleConfiguration::Single:
-		{
-			const FVector Center = MeshComponent->GetSocketLocation("Muzzle_C");
-			MuzzleLocations.Add(Center);
-			break;
-		}
-
-		case EMuzzleConfiguration::Dual:
-		{			
-			const FVector Left = MeshComponent->GetSocketLocation("Muzzle_L");
-			MuzzleLocations.Add(Left);
-			const FVector Right = MeshComponent->GetSocketLocation("Muzzle_R");
-			MuzzleLocations.Add(Right);
-			break;
-		}
-
-		case EMuzzleConfiguration::Triple:
-		{			
-			const FVector Center = MeshComponent->GetSocketLocation("Muzzle_C");
-			MuzzleLocations.Add(Center);
-			const FVector Left = MeshComponent->GetSocketLocation("Muzzle_L");
-			MuzzleLocations.Add(Left);
-			const FVector Right = MeshComponent->GetSocketLocation("Muzzle_R");
-			MuzzleLocations.Add(Right);
-			break;
-		}
-	}
-	
-	return MuzzleLocations;
 }
 
 void AUpTimePlayerCharacter::MoveForward(const float Value)
@@ -384,14 +394,14 @@ void AUpTimePlayerCharacter::RotateToMousePosition(AUpTimePlayerController* Play
 
 	const FVector CursorNormal = HitResult.ImpactNormal;
 	const FRotator CursorRotation = CursorNormal.Rotation();
-	
+
 	CursorToWorld->SetWorldLocation(HitResult.Location);
 	CursorToWorld->SetWorldRotation(CursorRotation);
 }
 
 void AUpTimePlayerCharacter::OnInteract()
 {
-	if(!FocussedInteractable)
+	if (!FocussedInteractable)
 	{
 		return;
 	}

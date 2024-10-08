@@ -9,9 +9,8 @@
 #include "Gameplay/Pickup.h"
 #include "Sound/SoundCue.h"
 
-// Sets default values
 AEnemyCharacter::AEnemyCharacter()
-	: 	Hitpoints(100.f),
+	: Weapon(nullptr), Hitpoints(100.f),
 	AttackRange(1500.f)
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -21,7 +20,7 @@ void AEnemyCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	if (DefaultWeapon != nullptr)
+	if (DefaultWeapon)
 	{
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -36,12 +35,12 @@ float AEnemyCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent,
 {
 	const float RemainingDamage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 
-	if(EventInstigator)
+	if (EventInstigator)
 	{
 		const auto AIController = Cast<AEnemyAIController>(GetController());
 		const auto PlayerCharacter = Cast<AUpTimePlayerCharacter>(EventInstigator->GetPawn());
-		
-		if(AIController && PlayerCharacter)
+
+		if (AIController && PlayerCharacter)
 		{
 			AIController->SetEnemy(PlayerCharacter);
 		}
@@ -71,11 +70,11 @@ bool AEnemyCharacter::Kill(AController* EventInstigator, AActor* DamageCauser)
 
 void AEnemyCharacter::StartFiring_Implementation()
 {
-	if (!CanFire())
+	if (!Execute_CanFire(this))
 	{
 		return;
 	}
-	
+
 	if (Weapon)
 	{
 		Weapon->StartFiring();
@@ -107,7 +106,7 @@ bool AEnemyCharacter::IsFiring_Implementation() const
 	{
 		return false;
 	}
-	
+
 	return Weapon && Weapon->GetCurrentState() == EWeaponState::Firing;
 }
 
@@ -115,7 +114,7 @@ TArray<FVector> AEnemyCharacter::GetWeaponMuzzleLocations_Implementation(EMuzzle
 {
 	USkeletalMeshComponent* EnemyMesh = GetMesh();
 	TArray<FVector> MuzzleLocations;
-	
+
 	switch (MuzzleConfig)
 	{
 		case EMuzzleConfiguration::Single:
@@ -126,7 +125,7 @@ TArray<FVector> AEnemyCharacter::GetWeaponMuzzleLocations_Implementation(EMuzzle
 		}
 
 		case EMuzzleConfiguration::Dual:
-		{			
+		{
 			const FVector Left = EnemyMesh->GetSocketLocation("Muzzle_L");
 			MuzzleLocations.Add(Left);
 			const FVector Right = EnemyMesh->GetSocketLocation("Muzzle_R");
@@ -135,7 +134,7 @@ TArray<FVector> AEnemyCharacter::GetWeaponMuzzleLocations_Implementation(EMuzzle
 		}
 
 		case EMuzzleConfiguration::Triple:
-		{			
+		{
 			const FVector Center = EnemyMesh->GetSocketLocation("Muzzle_C");
 			MuzzleLocations.Add(Center);
 			const FVector Left = EnemyMesh->GetSocketLocation("Muzzle_L");

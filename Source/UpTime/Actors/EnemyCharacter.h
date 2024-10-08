@@ -6,7 +6,6 @@
 #include "Common/ArmedActor.h"
 #include "Common/CombatCharacter.h"
 #include "GameFramework/Character.h"
-
 #include "EnemyCharacter.generated.h"
 
 
@@ -17,65 +16,16 @@ class UPTIME_API AEnemyCharacter : public ACombatCharacter, public IArmedActor
 {
 	GENERATED_BODY()
 
-public:
-	AEnemyCharacter();
-
-	void PostInitializeComponents() override;
-
-	float TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator,
-		AActor* DamageCauser) override;
-		
-	bool Kill(AController* EventInstigator, AActor* DamageCauser) override;
-	
-	/**
-	 * \brief Starts firing the weapon.
-	 */
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Weapons")
-	// ReSharper disable CppHidingFunction
-	void StartFiring();
-	
-	/**
-	 * \brief Stops firing the weapon.
-	 */
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Weapons")
-	void StopFiring();
-
-	/**
-	* \brief Checks whether the weapon can be fired.
-	*/
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Weapons")
-	bool CanFire() const;
-
-	/**
-	* \brief Checks whether any weapon is currently being fired.
-	*/
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Weapons")
-	bool IsFiring() const;
-	
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Weapons")
-	TArray<FVector> GetWeaponMuzzleLocations(EMuzzleConfiguration MuzzleConfig);
-
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Weapons")
-	class AWeapon* GetWeapon() const;	
-	// ReSharper restore CppHidingFunction
-	
-	float GetHitpoints() const override;
-	
-	void SetHitpoints(float NewHitpoints) override;
-	
-	UFUNCTION(BlueprintImplementableEvent, Category="Combat")
-	void SpawnPickup();
-		
-	UFUNCTION(BlueprintGetter, Category = "Combat")
-	float GetAttackRange() const;
-	
 protected:
+	/** The type of weapon to spawn with the enemy by default. */
 	UPROPERTY(EditDefaultsOnly, Category = "Weapons")
-	TSubclassOf<class AWeapon> DefaultWeapon;
+	TSubclassOf<AWeapon> DefaultWeapon;
 
+	/** The weapon the enemy is wielding. */
 	UPROPERTY(EditInstanceOnly, Category = "Weapons")
-	class AWeapon* Weapon;
-	
+	AWeapon* Weapon;
+
+	/** The pickup to spawn on enemy death. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	TSubclassOf<class APickup> PickupToSpawn;
 
@@ -86,4 +36,48 @@ protected:
 	/** The maximum attack range of the enemy. */
 	UPROPERTY(EditDefaultsOnly, BlueprintGetter=GetAttackRange, Category = "Combat")
 	float AttackRange;
+
+public:
+	AEnemyCharacter();
+
+	virtual void PostInitializeComponents() override;
+
+	virtual float TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator,
+		AActor* DamageCauser) override;
+
+	virtual bool Kill(AController* EventInstigator, AActor* DamageCauser) override;
+
+	/**
+	 * Starts firing the weapon.
+	 */
+	virtual void StartFiring_Implementation() override;
+
+	/**
+	 * Stops firing the weapon.
+	 */
+	virtual void StopFiring_Implementation() override;
+
+	/**
+	 * Checks whether the weapon can be fired.
+	 */
+	virtual bool CanFire_Implementation() const override;
+
+	/**
+	 * Checks whether any weapon is currently being fired.
+	 */
+	virtual bool IsFiring_Implementation() const override;
+
+	virtual TArray<FVector> GetWeaponMuzzleLocations_Implementation(EMuzzleConfiguration MuzzleConfig) override;
+
+	virtual AWeapon* GetWeapon_Implementation() const override;
+
+	UFUNCTION(BlueprintImplementableEvent, Category="Combat")
+	void SpawnPickup();
+
+	virtual float GetHitpoints() const override;
+
+	virtual void SetHitpoints(float NewHitpoints) override;
+
+	UFUNCTION(BlueprintGetter, Category = "Combat")
+	float GetAttackRange() const;
 };
